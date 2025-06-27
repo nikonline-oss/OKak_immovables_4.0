@@ -1,4 +1,4 @@
-CREATE TYPE user_role AS ENUM ('admin', 'buyer', 'developer', 'private_seller');
+CREATE TYPE user_role AS ENUM ('admin', 'user');
 CREATE TYPE card_type AS ENUM ('developer', 'complex', 'apartment');
 CREATE TYPE purchase_status AS ENUM ('pending', 'reserved', 'completed', 'canceled');
 CREATE TYPE property_status AS ENUM ('draft', 'available', 'reserved', 'sold');
@@ -12,8 +12,8 @@ CREATE TABLE "user"(
     "last_name" VARCHAR(100) NOT NULL,
     "phone" VARCHAR(20) NOT NULL,
     "avatar_url" VARCHAR(255),
+    "isVerified" BOOLEAN DEFAULT FALSE,
     "role" user_role NOT NULL DEFAULT 'buyer',
-    "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Профили застройщиков
@@ -40,7 +40,6 @@ CREATE TABLE "residential_complex"(
     "longitude" DECIMAL(11, 8) NOT NULL,
     "completion_date" DATE NOT NULL,
     "status" property_status NOT NULL DEFAULT 'available',
-    "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Карточки квартир
@@ -56,8 +55,6 @@ CREATE TABLE "apartment"(
     "total_floors" SMALLINT NOT NULL,
     "price" NUMERIC(12,2) NOT NULL,
     "status" property_status NOT NULL DEFAULT 'available',
-    "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Динамическое ценообразование
@@ -66,7 +63,6 @@ CREATE TABLE "price_history"(
     "apartment_id" INT NOT NULL REFERENCES "apartment"(id) ON DELETE CASCADE,
     "old_price" NUMERIC(12,2) NOT NULL,
     "new_price" NUMERIC(12,2) NOT NULL,
-    "changed_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "reason" VARCHAR(255) NOT NULL
 );
 

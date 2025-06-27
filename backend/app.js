@@ -5,8 +5,6 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const app = express();
 
-const moveExpiredEventsToHistory = require('./services/cron/History');
-
 //Middleware(Промежуточные обработчики)
 const corsOptions = {
     origin: 'http://localhost:3000',
