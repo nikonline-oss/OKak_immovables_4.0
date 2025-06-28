@@ -1,0 +1,41 @@
+module.exports = (sequelize, DataTypes) => {
+  const Apartment = sequelize.define('Apartment', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: false
+    },
+    address: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    size: {
+      type: DataTypes.FLOAT,
+      allowNull: false
+    },
+    booking_status: {
+      type: DataTypes.ENUM('available', 'booked', 'sold'),
+      defaultValue: 'available'
+    },
+    region: {
+      type: DataTypes.STRING,
+      allowNull: false
+    }
+  }, {
+    tableName: 'apartments',
+    timestamps: false
+  });
+
+  Apartment.associate = (models) => {
+    Apartment.belongsTo(models.Developer, { foreignKey: 'developer_id' });
+    Apartment.hasMany(models.MediaBlock, { foreignKey: 'apartment_id' });
+    Apartment.hasMany(models.Booking, { foreignKey: 'apartment_id' });
+    Apartment.hasMany(models.Favorite, { foreignKey: 'apartment_id' });
+  };
+
+  return Apartment;
+};

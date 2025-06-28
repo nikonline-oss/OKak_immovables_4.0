@@ -1,29 +1,59 @@
-const { logger } = require('../utils/LogFile');
+const winston = require('winston');
 
-// Middleware для логирования всех запросов
-function requestLogger(req, res, next) {
-  const { method, originalUrl } = req;
-  const startTime = Date.now();
+// Создаем логгер
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: 'logs/combined.log' })
+    ]
+});
 
-  res.on('finish', () => {
-    const { statusCode } = res;
-    const responseTime = Date.now() - startTime;
+// Middleware для логирования запросов
+exports.requestLogger = (req, res, next) => {
+    const start = Date.now();
+    
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        logger.info({
+            type: 'REQUEST',
+            method: req.method,
+            url: req.originalUrl,
+            status: res.statusCode,
+            duration: `${duration}ms`,
+            ip: req.ip,
+            user: req.user ? req.user.id : 'anonymous'
+        });
+    });
+    
+    next();
+};
 
-    logger.info(`${method} ${originalUrl} ${statusCode} - ${responseTime}ms`);
-  });
-
-  next();
-}
-
-// Middleware для логирования всех ошибок
-function errorLogger(err, req, res, next) {
-  const { method, originalUrl } = req;
-
-  logger.error(`Ошибка при ${method} ${originalUrl}: ${err.message}`);
-  next(err); // передаём ошибку дальше (например, в express error handler)
-}
-
-module.exports = {
-  requestLogger,
-  errorLogger
+// Middleware для логирования ошибок
+exports.errorLogger = (err, req, res, next) => {
+    logger.error({
+        type: 'ERROR',
+        method: req.method,
+        url: req.originalUrl,
+        status: err.status || 500,
+        message: err.message,
+        stack: err.stack,
+        ip: req.ip,
+        user: req.user ? req.user.id : 'anonymous'
+    });
+    
+    // Форматирование ошибки для клиента
+    const status = err.status || 500;
+    const response = {
+        error: {
+            message: status === 500 ? 'Internal Server Error' : err.message,
+            ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        }
+    };
+    
+    res.status(status).json(response);
 };

@@ -120,9 +120,10 @@ class Logger {
 }
 
 // Создаем экземпляр логгера по умолчанию для удобства
-const defaultLogger = new Logger().init();
+const defaultLogger = new Logger(); // Только создаем экземпляр
 
 module.exports = {
   Logger,
-  logger: defaultLogger
+  logger: defaultLogger,
+  initializeLogger: () => defaultLogger.init() // Добавляем метод для инициализации
 };
