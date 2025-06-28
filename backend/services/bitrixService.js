@@ -1,4 +1,4 @@
-require('dotenv').config(); 
+require('dotenv').config();
 const axios = require('axios');
 const qs = require('qs');
 
@@ -9,55 +9,84 @@ class BitrixService {
 
     async call(method, params = {}) {
         try {
-            console.log(method);
-            console.log(params);
-            console.log(this.apiUrl);
-            const response = await axios.post(
-                `${this.apiUrl}/${method}`,
-                qs.stringify(params),
-                { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-            );
+            // Формируем правильный URL
+            const fullUrl = `${this.apiUrl}/${method}`;
+            if (method === 'crm.contact.add') {
+                console.log(process.env.BITRIX_API_URL_CONTACT_ADD);
+                fullUrl = `${this.apiUrl}/${process.env.BITRIX_API_URL_CONTACT_ADD}/${method}`;
+            }
+
+            // Преобразуем параметры в строку
+            const data = qs.stringify(params);
+
+            console.log('Bitrix Request URL:', fullUrl);
+            console.log('Bitrix Request Data:', data);
+
+            const response = await axios.get(
+                `${fullUrl}?${data}`);
+
+            console.log('Bitrix Response:', response.data);
             return response.data;
         } catch (error) {
-            console.error('Bitrix API Error:', error.response?.data || error.message);
+            // Детальная обработка ошибок
+            let errorDetails = {
+                message: error.message,
+                code: error.code,
+            };
+
+            if (error.response) {
+                errorDetails = {
+                    ...errorDetails,
+                    status: error.response.status,
+                    data: error.response.data,
+                    headers: error.response.headers,
+                    config: {
+                        url: error.config.url,
+                        method: error.config.method,
+                        data: error.config.data
+                    }
+                };
+            }
+
+            console.error('Bitrix API Error:', JSON.stringify(errorDetails, null, 2));
             throw new Error('BITRIX_INTEGRATION_FAILED');
         }
     }
 
-    // Контакты
-    async createContact(fields) {
-        return this.call('crm.contact.add', { fields });
+
+    // Создание контакта с правильным форматом
+    async createContact(contactData) {
+        const fields = {
+            NAME: contactData.firstName,
+            LAST_NAME: contactData.lastName,
+            EMAIL: [{ VALUE: contactData.email, VALUE_TYPE: 'WORK' }],
+            TYPE_ID: 'CLIENT',
+            ASSIGNED_BY_ID: 1, // ID ответственного пользователя
+            SOURCE_ID: 'WEB'
+        };
+
+        if (contactData.phone) {
+            fields.PHONE = [{ VALUE: contactData.phone, VALUE_TYPE: 'WORK' }];
+        }
+
+        const result = await this.call('crm.contact.add', { fields });
+        return result.result; // Возвращаем ID созданного контакта
     }
 
-    async updateContact(id, fields) {
-        return this.call('crm.contact.update', { id, fields });
-    }
-
-    // Компании
-    async createCompany(fields) {
-        return this.call('crm.company.add', { fields });
-    }
-
-    async updateCompany(id, fields) {
-        return this.call('crm.company.update', { id, fields });
-    }
-
-    // Сделки
-    async createDeal(fields) {
-        return this.call('crm.deal.add', { fields });
-    }
-
-    async updateDeal(id, fields) {
-        return this.call('crm.deal.update', { id, fields });
-    }
-
-    // Товары (для квартир)
-    async createProduct(fields) {
-        return this.call('crm.product.add', { fields });
-    }
-
-    async updateProduct(id, fields) {
-        return this.call('crm.product.update', { id, fields });
+    // Проверка подключения
+    async testConnection() {
+        try {
+            const response = await this.call('crm.contact.fields');
+            return {
+                success: true,
+                fields: response.result
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message
+            };
+        }
     }
 }
 

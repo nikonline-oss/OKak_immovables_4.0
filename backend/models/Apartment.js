@@ -32,7 +32,12 @@ module.exports = (sequelize, DataTypes) => {
     link: {
       type: DataTypes.STRING,
       allowNull: false
+    },
+    last_updated: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW
     }
+
   }, {
     tableName: 'apartments',
     timestamps: false

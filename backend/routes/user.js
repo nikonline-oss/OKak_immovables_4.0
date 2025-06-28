@@ -5,7 +5,7 @@ const { User } = require('../models');
 // Create User
 router.post('/', async (req, res) => {
     try {
-        const { email, full_name, password } = req.body;
+        const { email, full_name, password, phone, verified} = req.body;
 
         // Debugging - log entire request
         console.log('Request body:', req.body);
@@ -20,7 +20,7 @@ router.post('/', async (req, res) => {
         }
 
 
-        const user = await User.create({ email, full_name, password });
+        const user = await User.create({ email, full_name, password ,phone, verified});
 
 
         res.status(201).json(user);

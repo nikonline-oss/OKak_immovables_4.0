@@ -1,7 +1,6 @@
 import requests
 import json
 
-API_KEY = "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" 
 MODEL = "deepseek/deepseek-r1"
 
 def process_content(content):

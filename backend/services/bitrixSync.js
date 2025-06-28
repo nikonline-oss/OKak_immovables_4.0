@@ -3,19 +3,20 @@ const { User, Apartment, Booking, Developer } = require('../models');
 
 // Синхронизация пользователя как контакта
 User.afterCreate(async (user) => {
-    try {
-        const contactData = {
-            NAME: user.full_name.split(' ')[0] || '',
-            LAST_NAME: user.full_name.split(' ').slice(1).join(' ') || '',
-            EMAIL: [{ VALUE: user.email, VALUE_TYPE: 'WORK' }],
-            TYPE_ID: 'CLIENT' // Тип "Клиент"
-        };
-
-        const response = await bitrixService.createContact(contactData);
-        await user.update({ bitrix_contact_id: response.result });
-    } catch (error) {
-        console.error('Bitrix contact sync error:', error);
-    }
+  try {
+    const nameParts = user.full_name.split(' ');
+    const contactId = await bitrixService.createContact({
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+      email: user.email,
+      phone: user.phone // добавьте это поле в модель User при необходимости
+    });
+    
+    await user.update({ bitrix_contact_id: contactId });
+    console.log(`Created Bitrix24 contact #${contactId} for user ${user.id}`);
+  } catch (error) {
+    console.error('Bitrix contact sync failed:', error);
+  }
 });
 
 // Синхронизация застройщика как компании
@@ -32,8 +33,8 @@ Developer.afterCreate(async (developer) => {
             CONTACT_ID: user.bitrix_contact_id // Привязка к контакту
         };
 
-        const response = await bitrixService.createCompany(companyData);
-        await developer.update({ bitrix_company_id: response.result });
+        // const response = await bitrixService.createCompany(companyData);
+        // await developer.update({ bitrix_company_id: response.result });
     } catch (error) {
         console.error('Bitrix company sync error:', error);
     }
@@ -54,7 +55,7 @@ Apartment.afterCreate(async (apartment) => {
             OWNER_ID: developer.bitrix_company_id // Привязка к компании застройщика
         };
 
-        const response = await bitrixService.createProduct(productData);
+        // const response = await bitrixService.createProduct(productData);
         await apartment.update({ bitrix_product_id: response.result });
     } catch (error) {
         console.error('Bitrix product sync error:', error);
@@ -88,7 +89,7 @@ Booking.afterCreate(async (booking) => {
             }]
         };
 
-        const response = await bitrixService.createDeal(dealData);
+        // const response = await bitrixService.createDeal(dealData);
         await booking.update({ bitrix_deal_id: response.result });
     } catch (error) {
         console.error('Bitrix deal sync error:', error);
@@ -107,10 +108,10 @@ Booking.afterUpdate(async (booking) => {
             default: stageId = 'PROCESSING'; // В работе
         }
 
-        await bitrixService.updateDeal(booking.bitrix_deal_id, {
-            STAGE_ID: stageId,
-            MODIFY_BY_ID: 1 // ID пользователя, внесшего изменение
-        });
+        // await bitrixService.updateDeal(booking.bitrix_deal_id, {
+        //     STAGE_ID: stageId,
+        //     MODIFY_BY_ID: 1 // ID пользователя, внесшего изменение
+        // });
     } catch (error) {
         console.error('Bitrix deal update error:', error);
     }
