@@ -10,20 +10,12 @@ class BitrixService {
     async call(method, params = {}) {
         try {
             // Формируем правильный URL
-            const fullUrl = `${this.apiUrl}/${method}`;
-            if (method === 'crm.contact.add') {
-                console.log(process.env.BITRIX_API_URL_CONTACT_ADD);
-                fullUrl = `${this.apiUrl}/${process.env.BITRIX_API_URL_CONTACT_ADD}/${method}`;
-            }
-
-            // Преобразуем параметры в строку
-            const data = qs.stringify(params);
-
-            console.log('Bitrix Request URL:', fullUrl);
-            console.log('Bitrix Request Data:', data);
+            var fullUrl = `${this.apiUrl}/${method}`;
 
             const response = await axios.get(
-                `${fullUrl}?${data}`);
+                `${fullUrl}?${qs.stringify(params, {
+                    encode: false, // Отключаем URL-кодирование
+                })}`);
 
             console.log('Bitrix Response:', response.data);
             return response.data;
@@ -52,16 +44,13 @@ class BitrixService {
             throw new Error('BITRIX_INTEGRATION_FAILED');
         }
     }
-
-
     // Создание контакта с правильным форматом
     async createContact(contactData) {
         const fields = {
             NAME: contactData.firstName,
             LAST_NAME: contactData.lastName,
             EMAIL: [{ VALUE: contactData.email, VALUE_TYPE: 'WORK' }],
-            TYPE_ID: 'CLIENT',
-            ASSIGNED_BY_ID: 1, // ID ответственного пользователя
+            TYPE_ID: contactData.role==='user'? 'CLIENT':'ADMIN',
             SOURCE_ID: 'WEB'
         };
 
@@ -69,24 +58,25 @@ class BitrixService {
             fields.PHONE = [{ VALUE: contactData.phone, VALUE_TYPE: 'WORK' }];
         }
 
-        const result = await this.call('crm.contact.add', { fields });
+        const result = await this.call(`${process.env.BITRIX_API_URL_CONTACT_ADD}/crm.contact.add`, { fields });
         return result.result; // Возвращаем ID созданного контакта
     }
 
-    // Проверка подключения
-    async testConnection() {
-        try {
-            const response = await this.call('crm.contact.fields');
-            return {
-                success: true,
-                fields: response.result
-            };
-        } catch (error) {
-            return {
-                success: false,
-                error: error.message
-            };
-        }
+    async getContactList(filter = {}, select = [], start = 0) {
+        const params = {
+            filter,
+            select,
+            start,
+        };
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.contact.list`, params);
+    }
+
+    async updateContact(contactId, updateData) {
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.contact.update`, { ID: contactId, fields: updateData });
+    }
+
+    async deleteContact(contactId) {
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.contact.delete`, { ID: contactId });
     }
 }
 

@@ -32,6 +32,11 @@ module.exports = (sequelize, DataTypes) => {
     bitrix_contact_id: {
       type: DataTypes.INTEGER,
       allowNull: true
+    },
+    role:{
+      type: DataTypes.ENUM,
+      values: ['admin', 'user'],
+      defaultValue: 'user'
     }
   }, {
     tableName: 'users',

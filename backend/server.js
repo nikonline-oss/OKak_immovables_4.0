@@ -29,44 +29,44 @@ async function initialize() {
     await sequelize.authenticate();
     console.log('✅ Подключение к БД успешно');
 
-    // 3. Безопасная синхронизация
-    await sequelize.sync({ force: true });
-    console.log('🔄 Модели синхронизированы');
+    // // 3. Безопасная синхронизация
+    // await sequelize.sync({ force: true });
+    // console.log('🔄 Модели синхронизированы');
 
-    // Тестовые данные
-    const user = await User.create({
-      full_name: 'Тестовый Пользователь',
-      password: 'testpassword',
-      email: 'test@example.com',
-      phone: '+71234567890',
-      verified: true
-    });
+    // // Тестовые данные
+    // const user = await User.create({
+    //   full_name: 'Тестовый Пользователь',
+    //   password: 'testpassword',
+    //   email: 'test@example.com',
+    //   phone: '+71234567890',
+    //   verified: true
+    // });
 
-    const developer = await Developer.create({
-      name: 'СтройГард',
-      inn: "123442323",
-      user_id: user.id
-    });
+    // const developer = await Developer.create({
+    //   name: 'СтройГард',
+    //   inn: "123442323",
+    //   user_id: user.id
+    // });
 
-    const apartment = await Apartment.create({
-      title: 'Уютная 2-комнатная квартира',
-      description: 'Просторная квартира с ремонтом',
-      address: 'ул. Центральная, 15',
-      price: 5000000,
-      region: 'Центральный',
-      booking_status: 'available',
-      link: '/apartments/1',
-      developer_id: developer.id
-    });
+    // const apartment = await Apartment.create({
+    //   title: 'Уютная 2-комнатная квартира',
+    //   description: 'Просторная квартира с ремонтом',
+    //   address: 'ул. Центральная, 15',
+    //   price: 5000000,
+    //   region: 'Центральный',
+    //   booking_status: 'available',
+    //   link: '/apartments/1',
+    //   developer_id: developer.id
+    // });
 
-    // Создаем бронирование для связи пользователя с квартирой
-    await Booking.create({
-      user_id: user.id,
-      apartment_id: apartment.id,
-      status: 'confirmed'
-    });
+    // // Создаем бронирование для связи пользователя с квартирой
+    // await Booking.create({
+    //   user_id: user.id,
+    //   apartment_id: apartment.id,
+    //   status: 'confirmed'
+    // });
 
-    await UserCountHistory.create({ total_users: 1 });
+    // await UserCountHistory.create({ total_users: 1 });
 
     // Хуки для модели User
     // User.afterCreate(async (user) => {
