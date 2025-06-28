@@ -18,11 +18,19 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       defaultValue: false
     },
+    views:{
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
     website: {
       type: DataTypes.STRING,
       validate: {
         isUrl: true
       }
+    },
+    bitrix_company_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true
     }
   }, {
     tableName: 'developers',

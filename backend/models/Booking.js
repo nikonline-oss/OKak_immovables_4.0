@@ -12,6 +12,10 @@ module.exports = (sequelize, DataTypes) => {
     status: {
       type: DataTypes.ENUM('pending', 'confirmed', 'canceled'),
       defaultValue: 'pending'
+    },
+    bitrix_deal_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true
     }
   }, {
     tableName: 'bookings',

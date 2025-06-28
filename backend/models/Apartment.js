@@ -5,6 +5,10 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
     },
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
     description: {
       type: DataTypes.TEXT,
       allowNull: false
@@ -13,15 +17,19 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
-    size: {
-      type: DataTypes.FLOAT,
+    price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
+    region: {
+      type: DataTypes.STRING,
       allowNull: false
     },
     booking_status: {
       type: DataTypes.ENUM('available', 'booked', 'sold'),
       defaultValue: 'available'
     },
-    region: {
+    link: {
       type: DataTypes.STRING,
       allowNull: false
     }

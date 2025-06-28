@@ -15,6 +15,10 @@ app.use(express.json());
 app.use(cookieParser());
 
 
+// Подключение синхронизации
+require('./services/bitrixSync');
+
+
 // Подключение основных маршрутов
 const RouterController = require('./routes');
 new RouterController(app);
