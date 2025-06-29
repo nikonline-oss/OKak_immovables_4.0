@@ -10,13 +10,25 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       unique: true
     },
+    address:{
+      type: DataTypes.STRING(255),
+      allowNull: false
+    },
     name: {
       type: DataTypes.STRING,
       allowNull: false
     },
-    verified: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false
+    phone:{
+      type: DataTypes.STRING(20),
+      allowNull: false
+    },
+    email:{
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: true
+      }
     },
     views:{
       type: DataTypes.INTEGER,

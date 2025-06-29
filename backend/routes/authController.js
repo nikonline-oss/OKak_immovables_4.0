@@ -8,7 +8,7 @@ module.exports = {
   // Регистрация
   register: async (req, res) => {
     try {
-      const { email, password, name, phone, verified } = req.body;
+      const { email, password, full_name, phone, verified } = req.body;
 
       // 1. Проверка существования пользователя
       const exists = await User.findOne({ where: { email } });
@@ -23,7 +23,7 @@ module.exports = {
       const user = await User.create({
         email,
         password: hashedPassword,
-        full_name: name,
+        full_name: full_name,
         phone,
         verified,
         bitrix_contact_id: null // Можно добавить привязку к Bitrix
@@ -31,7 +31,7 @@ module.exports = {
 
       // 4. Генерация токена
       const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role, bitrix_contact_id: bitrix_contact_id },
+        { id: user.id, email: user.email, role: user.role, bitrix_contact_id: user.bitrix_contact_id },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );

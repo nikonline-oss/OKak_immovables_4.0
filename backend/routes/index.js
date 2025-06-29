@@ -7,6 +7,7 @@ const apartmentRoutes = require('../routes/apartment');
 const bookingRoutes = require('../routes/booking');
 const favoriteRoutes = require('../routes/favorite');
 const mediaRoutes = require('../routes/media');
+const authRoutes = require('./auth');
 
 class RouterController {
     constructor(app) {
@@ -17,6 +18,7 @@ class RouterController {
         this.app.use(requestLogger);
 
         // Регистрация всех API роутеров
+        this.app.use('/api/auth', authRoutes);
         this.app.use('/api/users', userRoutes);
         this.app.use('/api/developers', developerRoutes);
         this.app.use('/api/apartments', apartmentRoutes);

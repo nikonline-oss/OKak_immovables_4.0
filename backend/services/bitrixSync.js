@@ -20,48 +20,53 @@ User.afterCreate(async (user) => {
   }
 });
 
-// // Синхронизация застройщика как компании
-// Developer.afterCreate(async (developer) => {
-//     try {
-//         const user = await User.findByPk(developer.user_id);
-//         if (!user) throw new Error('User not found for developer');
+// Синхронизация застройщика как компании
+Developer.afterCreate(async (developer) => {
+    try {
+        const user = await User.findByPk(developer.user_id);
+        if (!user) throw new Error('User not found for developer');
 
-//         const companyData = {
-//             TITLE: developer.name,
-//             COMPANY_TYPE: 'PARTNER', // Тип "Партнер"
-//             INN: developer.inn,
-//             ASSIGNED_BY_ID: 1, // Ответственный в Bitrix
-//             CONTACT_ID: user.bitrix_contact_id // Привязка к контакту
-//         };
+        const companyData = {
+            name: developer.name,
+            address:developer.address,
+            email: user.email,
+            phone: user.phone, // добавьте это поле в модель User при необходимости
+            inn: developer.inn,
+            views:developer.views,
+            website:developer.website,
+            user_id: user.bitrix_contact_id // Привязка к контакту
+        };
 
-//         // const response = await bitrixService.createCompany(companyData);
-//         // await developer.update({ bitrix_company_id: response.result });
-//     } catch (error) {
-//         console.error('Bitrix company sync error:', error);
-//     }
-// });
+        const response = await bitrixService.createDeveloper(companyData);
 
-// // Синхронизация квартиры как товара
-// Apartment.afterCreate(async (apartment) => {
-//     try {
-//         const developer = await Developer.findByPk(apartment.developer_id);
-//         if (!developer) throw new Error('Developer not found');
+        console.log(response);
+        await developer.update({ bitrix_company_id: response.result });
+    } catch (error) {
+        console.error('Bitrix company sync error:', error);
+    }
+});
 
-//         const productData = {
-//             NAME: apartment.title,
-//             DESCRIPTION: apartment.description,
-//             PRICE: apartment.price,
-//             CURRENCY_ID: 'RUB',
-//             SECTION_ID: 'REALTY', // Секция "Недвижимость"
-//             OWNER_ID: developer.bitrix_company_id // Привязка к компании застройщика
-//         };
+// Синхронизация квартиры как товара
+Apartment.afterCreate(async (apartment) => {
+    try {
+        const developer = await Developer.findByPk(apartment.developer_id);
+        if (!developer) throw new Error('Developer not found');
 
-//         // const response = await bitrixService.createProduct(productData);
-//         await apartment.update({ bitrix_product_id: response.result });
-//     } catch (error) {
-//         console.error('Bitrix product sync error:', error);
-//     }
-// });
+        const productData = {
+            NAME: apartment.title,
+            DESCRIPTION: apartment.description,
+            PRICE: apartment.price,
+            CURRENCY_ID: 'RUB',
+            SECTION_ID: 'REALTY', // Секция "Недвижимость"
+            OWNER_ID: developer.bitrix_company_id // Привязка к компании застройщика
+        };
+
+        const response = await bitrixService.createProduct(productData);
+        await apartment.update({ bitrix_product_id: response.result });
+    } catch (error) {
+        console.error('Bitrix product sync error:', error);
+    }
+});
 
 // // Синхронизация бронирования как сделки
 // Booking.afterCreate(async (booking) => {
