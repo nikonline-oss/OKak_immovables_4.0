@@ -46,28 +46,6 @@ Developer.afterCreate(async (developer) => {
     }
 });
 
-// Синхронизация квартиры как товара
-Apartment.afterCreate(async (apartment) => {
-    try {
-        const developer = await Developer.findByPk(apartment.developer_id);
-        if (!developer) throw new Error('Developer not found');
-
-        const productData = {
-            NAME: apartment.title,
-            DESCRIPTION: apartment.description,
-            PRICE: apartment.price,
-            CURRENCY_ID: 'RUB',
-            SECTION_ID: 'REALTY', // Секция "Недвижимость"
-            OWNER_ID: developer.bitrix_company_id // Привязка к компании застройщика
-        };
-
-        const response = await bitrixService.createProduct(productData);
-        await apartment.update({ bitrix_product_id: response.result });
-    } catch (error) {
-        console.error('Bitrix product sync error:', error);
-    }
-});
-
 // // Синхронизация бронирования как сделки
 // Booking.afterCreate(async (booking) => {
 //     try {

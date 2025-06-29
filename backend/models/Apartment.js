@@ -13,6 +13,31 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
       allowNull: false
     },
+    longitude: {
+      type: DataTypes.DECIMAL(10, 8),
+      allowNull: false
+    },
+    latitude: {
+      type: DataTypes.DECIMAL(10, 8),
+      allowNull: false
+    },
+    window: {
+      type: DataTypes.ENUM('insade', 'outside'),
+      defaultValue: 'insade'
+    },
+    parking: {
+      type: DataTypes.ENUM('surface', 'underground', 'no'),
+      defaultValue: 'no'
+
+    },
+    rooms: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    floor: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
     address: {
       type: DataTypes.STRING,
       allowNull: false
@@ -36,6 +61,10 @@ module.exports = (sequelize, DataTypes) => {
     last_updated: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW
+    },
+    bitrix_id: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
 
   }, {

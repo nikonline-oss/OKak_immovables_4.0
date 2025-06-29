@@ -124,20 +124,28 @@ class BitrixService {
                 SQUARE: apartmentData.area,
                 ROOMS: apartmentData.rooms,
                 FLOOR: apartmentData.floor,
-                STATUS: apartmentData.status || 'AVAILABLE'
+                STATUS: apartmentData.booking_status || 'AVAILABLE'
             }
         };
-        return this.call('crm.product.add', { fields }, 'post');
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.product.add`, { fields });
     }
 
     async getApartmentList(filter = {}) {
-        return this.call('crm.product.list', { 
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.product.list`, { 
             filter: { 
                 ...filter,
                 SECTION_ID: filter.buildingId 
             },
             select: ['ID', 'NAME', 'PRICE', 'PROPERTY_SQUARE', 'PROPERTY_ROOMS']
         });
+    }
+
+    async updateApartment(contactId, updateData) {
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.product.update`, { ID: contactId, fields: updateData });
+    }
+
+    async deleteApartment(contactId) {
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.product.delete`, { ID: contactId });
     }
 }
 

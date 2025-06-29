@@ -7,7 +7,19 @@ module.exports = (sequelize, DataTypes) => {
     },
     image: {
       type: DataTypes.BLOB,
-      allowNull: false
+      allowNull: true
+    },
+    url:{
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    type:{
+      type: DataTypes.STRING,
+      allowNull:true
+    },
+    position:{
+      type: DataTypes.INTEGER,
+      allowNull:true
     },
     description: {
       type: DataTypes.TEXT
