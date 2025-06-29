@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Дизайнер и Навигатор Квартиры</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            flex-grow: 1;
+        }
+        
+        /* Стили для режима дизайна */
+        #design-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 400px;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        #design-panel h1 {
+            margin-top: 0;
+            color: #ffcc00;
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.7);
+        }
+        
+        #furniture-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .furniture-item {
+            background: rgba(50, 50, 50, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .furniture-item:hover {
+            background: rgba(80, 80, 80, 0.8);
+            transform: translateY(-3px);
+        }
+        
+        .furniture-item.selected {
+            background: rgba(30, 100, 200, 0.8);
+            border: 2px solid #ffcc00;
+        }
+        
+        #design-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 25px;
+            border-radius: 10px;
+            display: flex;
+            gap: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+        
+        /* Стили для режима навигации */
+        #nav-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 400px;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+        
+        #nav-panel h1 {
+            margin-top: 0;
+            color: #ff9800;
+            text-shadow: 0 0 5px rgba(255, 152, 0, 0.7);
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            margin-top: 15px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .floor-plan {
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .floor-plan h3 {
+            margin-bottom: 8px;
+            color: #ff9800;
+        }
+        
+        .room-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+        }
+        
+        .room-item {
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            padding: 3px;
+        }
+        
+        .color-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            margin-right: 5px;
+            display: inline-block;
+        }
+        
+        /* Общие стили */
+        #instructions {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            transition: opacity 0.5s;
+        }
+        
+        #instructions h2 {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #ff9800;
+            text-align: center;
+        }
+        
+        #instructions p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            background: #ff9800;
+            color: #1a1a1a;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(255, 152, 0, 0.5);
+        }
+        
+        button:hover {
+            background: #ffab40;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 152, 0, 0.8);
+        }
+        
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #ff9800;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        #room-label {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 16px;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .key {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-family: monospace;
+        }
+        
+        .mode-btn {
+            background: linear-gradient(to bottom, #00cc66, #00994d);
+        }
+        
+        .nav-btn {
+            background: linear-gradient(to bottom, #ffcc00, #ff9900);
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>Загрузка 3D макета...</div>
+    </div>
+    
+    <div id="instructions">
+        <h2>3D Дизайнер и Навигатор Квартиры</h2>
+        <p>Сначала создайте дизайн своей квартиры, затем переключитесь в режим навигации, чтобы исследовать ее в режиме свободного передвижения.</p>
+        <button id="startButton">Начать проектирование</button>
+        <div class="controls" style="margin-top: 30px; max-width: 600px;">
+            <strong>Управление в режиме дизайна:</strong><br>
+            • ЛКМ + движение мыши: вращение камеры<br>
+            • ПКМ + движение мыши: перемещение камеры<br>
+            • Колесо мыши: приближение/отдаление<br>
+            • ЛКМ: выбрать/разместить мебель<br>
+            • R: повернуть мебель<br>
+            • DEL: удалить выбранную мебель<br><br>
+            
+            <strong>Управление в режиме навигации:</strong><br>
+            • WASD: перемещение вперед/назад/вбок<br>
+            • ЛКМ: осмотр по сторонам<br>
+            • Пробел: подняться вверх<br>
+            • Shift: присесть<br>
+            • R: сбросить положение<br>
+            • ESC: выход из режима управления
+        </div>
+    </div>
+    
+    <div id="container"></div>
+    
+    <!-- Панель для режима дизайна -->
+    <div id="design-panel">
+        <h1>3D Дизайнер Квартиры</h1>
+        <p>Создайте идеальный интерьер, расставляя мебель по своему вкусу.</p>
+        
+        <div id="furniture-selector">
+            <div class="furniture-item selected" data-type="sofa">Диван</div>
+            <div class="furniture-item" data-type="table">Стол</div>
+            <div class="furniture-item" data-type="bed">Кровать</div>
+            <div class="furniture-item" data-type="cabinet">Шкаф</div>
+            <div class="furniture-item" data-type="chair">Стул</div>
+            <div class="furniture-item" data-type="tv">Телевизор</div>
+        </div>
+    </div>
+    
+    <div id="design-controls">
+        <button id="reset-btn">Сбросить расстановку</button>
+        <button id="mode-btn" class="nav-btn">Перейти в режим навигации</button>
+        <button id="save-btn">Сохранить дизайн</button>
+    </div>
+    
+    <!-- Панель для режима навигации -->
+    <div id="nav-panel">
+        <h1>3D Навигатор Квартиры</h1>
+        <p>Площадь: 65 м² | Комнат: 2 | Высота потолков: 3 м</p>
+        
+        <div class="controls">
+            <strong>Управление:</strong><br>
+            • WASD: перемещение<br>
+            • Мышь: осмотр<br>
+            • Пробел/Shift: вверх/вниз<br>
+            • R: сброс позиции<br>
+            • ESC: выход
+        </div>
+        
+        <div class="floor-plan">
+            <h3>Планировка квартиры:</h3>
+            <div class="room-list">
+                <div class="room-item"><span class="color-indicator" style="background: #FF5722;"></span>Гостиная</div>
+                <div class="room-item"><span class="color-indicator" style="background: #9C27B0;"></span>Спальня</div>
+                <div class="room-item"><span class="color-indicator" style="background: #00BCD4;"></span>Кухня</div>
+                <div class="room-item"><span class="color-indicator" style="background: #4CAF50;"></span>Прихожая</div>
+                <div class="room-item"><span class="color-indicator" style="background: #2196F3;"></span>Санузел</div>
+                <div class="room-item"><span class="color-indicator" style="background: #FF9800;"></span>Балкон</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="stats">
+        Позиция: <span id="position">0, 0, 0</span>
+    </div>
+    
+    <div id="room-label"></div>
+
+    <script>
+        // Основные переменные
+        let scene, camera, renderer, orbitControls, pointerControls;
+        const wallHeight = 3;
+        const wallThickness = 0.2;
+        
+        // Размеры квартиры (в метрах)
+        const apartmentLayout = {
+            width: 12,   // по оси X
+            depth: 10,   // по оси Z
+            rooms: {
+                hallway: { x: 0, z: -4, width: 2.5, depth: 2 },
+                livingRoom: { x: -3.5, z: -1.5, width: 5, depth: 5 },
+                bedroom: { x: 3.5, z: -1.5, width: 4.5, depth: 5 },
+                kitchen: { x: -3.5, z: 4, width: 5, depth: 3 },
+                bathroom: { x: 3.5, z: 4, width: 4.5, depth: 3 },
+                balcony: { x: -3.5, z: 7.5, width: 5, depth: 1.5 }
+            }
+        };
+        
+        // Переменные для управления
+        let moveForward = false;
+        let moveBackward = false;
+        let moveLeft = false;
+        let moveRight = false;
+        let canJump = false;
+        let isCrouching = false;
+        let playerHeight = 1.7;
+        let crouchHeight = 1.0;
+        let velocity = new THREE.Vector3();
+        let prevTime = performance.now();
+        
+        // Коллизии
+        const collisionObjects = [];
+        const playerRadius = 0.3;
+        
+        // Мебель
+        let furniture = [];
+        let selectedFurnitureType = 'sofa';
+        let selectedFurniture = null;
+        let mode = 'design'; // 'design' или 'navigation'
+        let raycaster, mouse;
+        
+        // Текстуры и материалы
+        const materials = {
+            wall: new THREE.MeshStandardMaterial({ 
+                color: 0xF0E68C,
+                roughness: 0.8,
+                metalness: 0.1
+            }),
+            innerWall: new THREE.MeshStandardMaterial({ 
+                color: 0xD2B48C,
+                roughness: 0.7
+            }),
+            floor: new THREE.MeshStandardMaterial({ 
+                color: 0x8B4513,
+                roughness: 0.9,
+                metalness: 0.1
+            }),
+            ceiling: new THREE.MeshStandardMaterial({ 
+                color: 0xF5F5F5,
+                roughness: 0.8
+            }),
+            window: new THREE.MeshStandardMaterial({ 
+                color: 0x87CEEB,
+                transparent: true,
+                opacity: 0.7
+            }),
+            door: new THREE.MeshStandardMaterial({ 
+                color: 0x8B4513,
+                roughness: 0.6
+            })
+        };
+        
+        // Инициализация сцены
+        function init() {
+            // Создание сцены
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xaaaaaa);
+            scene.fog = new THREE.Fog(0xaaaaaa, 5, 20);
+            
+            // Создание камеры
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 10);
+            
+            // Создание рендерера
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // Добавление управления камерой (OrbitControls для дизайна)
+            orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            orbitControls.dampingFactor = 0.05;
+            
+            // Добавление управления камерой (PointerLockControls для навигации)
+            pointerControls = new THREE.PointerLockControls(camera, document.body);
+            
+            // Инициализация Raycaster
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            
+            // Обработчики событий для управления
+            document.addEventListener('keydown', onKeyDown, false);
+            document.addEventListener('keyup', onKeyUp, false);
+            document.getElementById('startButton').addEventListener('click', function() {
+                document.getElementById('instructions').style.display = 'none';
+            });
+            
+            pointerControls.addEventListener('lock', function() {
+                document.getElementById('instructions').style.display = 'none';
+            });
+            
+            pointerControls.addEventListener('unlock', function() {
+                document.getElementById('instructions').style.display = 'flex';
+            });
+            
+            // Добавление освещения
+            addLighting();
+            
+            // Создание структуры квартиры
+            createStructure();
+            
+            // Добавление мебели по умолчанию
+            createInitialFurniture();
+            
+            // Инициализация выбора мебели
+            initFurnitureSelector();
+            
+            // Обработка изменения размера окна
+            window.addEventListener('resize', onWindowResize);
+            
+            // Скрытие загрузчика
+            setTimeout(() => {
+                document.getElementById('loading').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                }, 500);
+            }, 1500);
+            
+            // Запуск анимации
+            animate();
+        }
+        
+        // Добавление освещения
+        function addLighting() {
+            // Основной свет
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            // Направленный свет (солнце)
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 7);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 50;
+            directionalLight.shadow.camera.left = -10;
+            directionalLight.shadow.camera.right = 10;
+            directionalLight.shadow.camera.top = 10;
+            directionalLight.shadow.camera.bottom = -10;
+            scene.add(directionalLight);
+            
+            // Вспомогательный свет
+            const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.3);
+            scene.add(hemisphereLight);
+            
+            // Освещение комнаты
+            const roomLight1 = new THREE.PointLight(0xfff0c0, 0.7, 8);
+            roomLight1.position.set(-3.5, 2.5, -1.5);
+            roomLight1.castShadow = true;
+            scene.add(roomLight1);
+            
+            const roomLight2 = new THREE.PointLight(0xfff0c0, 0.7, 8);
+            roomLight2.position.set(3.5, 2.5, -1.5);
+            scene.add(roomLight2);
+            
+            const roomLight3 = new THREE.PointLight(0xfff0c0, 0.7, 8);
+            roomLight3.position.set(-3.5, 2.5, 4);
+            scene.add(roomLight3);
+            
+            // Эффект свечения ламп
+            const lampGlow1 = new THREE.Mesh(
+                new THREE.SphereGeometry(0.2, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0xfff0c0 })
+            );
+            lampGlow1.position.copy(roomLight1.position);
+            scene.add(lampGlow1);
+            
+            const lampGlow2 = new THREE.Mesh(
+                new THREE.SphereGeometry(0.2, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0xfff0c0 })
+            );
+            lampGlow2.position.copy(roomLight2.position);
+            scene.add(lampGlow2);
+            
+            const lampGlow3 = new THREE.Mesh(
+                new THREE.SphereGeometry(0.2, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0xfff0c0 })
+            );
+            lampGlow3.position.copy(roomLight3.position);
+            scene.add(lampGlow3);
+        }
+        
+        // Создание структуры квартиры
+        function createStructure() {
+            // Пол
+            const floorGeometry = new THREE.BoxGeometry(
+                apartmentLayout.width, 
+                wallThickness, 
+                apartmentLayout.depth
+            );
+            const floor = new THREE.Mesh(floorGeometry, materials.floor);
+            floor.position.y = -wallThickness/2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+            collisionObjects.push(floor);
+            
+            // Потолок
+            const ceilingGeometry = new THREE.BoxGeometry(
+                apartmentLayout.width, 
+                wallThickness, 
+                apartmentLayout.depth
+            );
+            const ceiling = new THREE.Mesh(ceilingGeometry, materials.ceiling);
+            ceiling.position.y = wallHeight + wallThickness/2;
+            ceiling.receiveShadow = true;
+            scene.add(ceiling);
+            collisionObjects.push(ceiling);
+            
+            // Внешние стены
+            createWalls();
+            
+            // Внутренние стены и перегородки
+            createInternalWalls();
+            
+            // Двери
+            createDoors();
+            
+            // Окна
+            createWindows();
+            
+            // Плинтусы
+            addSkirtingBoards();
+        }
+        
+        function createWalls() {
+            // Задняя стена (по оси Z)
+            const backWall = new THREE.Mesh(
+                new THREE.BoxGeometry(apartmentLayout.width, wallHeight, wallThickness),
+                materials.wall
+            );
+            backWall.position.set(0, wallHeight/2, -apartmentLayout.depth/2);
+            backWall.castShadow = true;
+            scene.add(backWall);
+            collisionObjects.push(backWall);
+            
+            // Передняя стена
+            const frontWall = new THREE.Mesh(
+                new THREE.BoxGeometry(apartmentLayout.width, wallHeight, wallThickness),
+                materials.wall
+            );
+            frontWall.position.set(0, wallHeight/2, apartmentLayout.depth/2);
+            frontWall.castShadow = true;
+            scene.add(frontWall);
+            collisionObjects.push(frontWall);
+            
+            // Левая стена
+            const leftWall = new THREE.Mesh(
+                new THREE.BoxGeometry(wallThickness, wallHeight, apartmentLayout.depth),
+                materials.wall
+            );
+            leftWall.position.set(-apartmentLayout.width/2, wallHeight/2, 0);
+            leftWall.castShadow = true;
+            scene.add(leftWall);
+            collisionObjects.push(leftWall);
+            
+            // Правая стена
+            const rightWall = new THREE.Mesh(
+                new THREE.BoxGeometry(wallThickness, wallHeight, apartmentLayout.depth),
+                materials.wall
+            );
+            rightWall.position.set(apartmentLayout.width/2, wallHeight/2, 0);
+            rightWall.castShadow = true;
+            scene.add(rightWall);
+            collisionObjects.push(rightWall);
+        }
+        
+        function createInternalWalls() {
+            const r = apartmentLayout.rooms;
+            
+            // Перегородка между прихожей и гостиной
+            const wall1 = new THREE.Mesh(
+                new THREE.BoxGeometry(wallThickness, wallHeight, r.hallway.depth + 2),
+                materials.innerWall
+            );
+            wall1.position.set(
+                -r.hallway.width/2, 
+                wallHeight/2, 
+                -apartmentLayout.depth/2 + r.hallway.depth/2 + 1
+            );
+            scene.add(wall1);
+            collisionObjects.push(wall1);
+            
+            // Перегородка между прихожей и спальней
+            const wall2 = new THREE.Mesh(
+                new THREE.BoxGeometry(wallThickness, wallHeight, r.hallway.depth),
+                materials.innerWall
+            );
+            wall2.position.set(
+                r.hallway.width/2, 
+                wallHeight/2, 
+                -apartmentLayout.depth/2 + r.hallway.depth/2
+            );
+            scene.add(wall2);
+            collisionObjects.push(wall2);
+            
+            // Перегородка между гостиной и кухней
+            const wall3 = new THREE.Mesh(
+                new THREE.BoxGeometry(r.livingRoom.width - 1, wallHeight, wallThickness),
+                materials.innerWall
+            );
+            wall3.position.set(
+                r.livingRoom.x, 
+                wallHeight/2, 
+                r.livingRoom.z + r.livingRoom.depth/2 - 1.5
+            );
+            scene.add(wall3);
+            collisionObjects.push(wall3);
+            
+            // Перегородка между спальней и санузлом
+            const wall4 = new THREE.Mesh(
+                new THREE.BoxGeometry(r.bedroom.width - 1, wallHeight, wallThickness),
+                materials.innerWall
+            );
+            wall4.position.set(
+                r.bedroom.x, 
+                wallHeight/2, 
+                r.bedroom.z + r.bedroom.depth/2 - 1.5
+            );
+            scene.add(wall4);
+            collisionObjects.push(wall4);
+        }
+        
+        function createDoors() {
+            const r = apartmentLayout.rooms;
+            
+            // Входная дверь
+            const doorGeometry = new THREE.BoxGeometry(1, 2.2, 0.1);
+            const door = new THREE.Mesh(doorGeometry, materials.door);
+            door.position.set(
+                0, 
+                1.1, 
+                -apartmentLayout.depth/2 + wallThickness/2
+            );
+            door.castShadow = true;
+            scene.add(door);
+            
+            // Дверная коробка
+            const doorFrame = new THREE.Mesh(
+                new THREE.BoxGeometry(1.1, 2.3, 0.15),
+                materials.door
+            );
+            doorFrame.position.copy(door.position);
+            scene.add(doorFrame);
+            
+            // Дверь в санузел
+            const bathroomDoor = door.clone();
+            bathroomDoor.position.set(
+                r.bathroom.x - r.bathroom.width/2 + 0.8,
+                1.1,
+                r.bathroom.z - r.bathroom.depth/2 + wallThickness/2
+            );
+            scene.add(bathroomDoor);
+            
+            // Дверь в спальню
+            const bedroomDoor = door.clone();
+            bedroomDoor.position.set(
+                r.bedroom.x - r.bedroom.width/2 + 0.8,
+                1.1,
+                r.bedroom.z - r.bedroom.depth/2 + wallThickness/2
+            );
+            scene.add(bedroomDoor);
+        }
+        
+        function createWindows() {
+            const r = apartmentLayout.rooms;
+            
+            // Окно в гостиной
+            const windowGeometry = new THREE.BoxGeometry(2.5, 1.8, 0.1);
+            const window = new THREE.Mesh(windowGeometry, materials.window);
+            window.position.set(
+                r.livingRoom.x,
+                1.5,
+                -apartmentLayout.depth/2 + wallThickness/2
+            );
+            scene.add(window);
+            
+            // Окно в спальне
+            const bedroomWindow = window.clone();
+            bedroomWindow.position.set(
+                r.bedroom.x,
+                1.5,
+                -apartmentLayout.depth/2 + wallThickness/2
+            );
+            scene.add(bedroomWindow);
+            
+            // Окно на кухне
+            const kitchenWindow = window.clone();
+            kitchenWindow.position.set(
+                r.kitchen.x,
+                1.5,
+                apartmentLayout.depth/2 - wallThickness/2
+            );
+            scene.add(kitchenWindow);
+            
+            // Окно на балконе
+            const balconyWindow = window.clone();
+            balconyWindow.position.set(
+                r.balcony.x,
+                1.5,
+                apartmentLayout.depth/2 - wallThickness/2
+            );
+            scene.add(balconyWindow);
+        }
+        
+        function addSkirtingBoards() {
+            const skirtingMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x5d4037,
+                roughness: 0.8
+            });
+            
+            // Плинтус по периметру
+            const perimeter = [
+                { pos: [0, 0.05, -apartmentLayout.depth/2 + 0.025], size: [apartmentLayout.width - 0.1, 0.1, 0.05] },
+                { pos: [0, 0.05, apartmentLayout.depth/2 - 0.025], size: [apartmentLayout.width - 0.1, 0.1, 0.05] },
+                { pos: [-apartmentLayout.width/2 + 0.025, 0.05, 0], size: [0.05, 0.1, apartmentLayout.depth - 0.1] },
+                { pos: [apartmentLayout.width/2 - 0.025, 0.05, 0], size: [0.05, 0.1, apartmentLayout.depth - 0.1] }
+            ];
+            
+            perimeter.forEach(item => {
+                const skirting = new THREE.Mesh(
+                    new THREE.BoxGeometry(...item.size),
+                    skirtingMaterial
+                );
+                skirting.position.set(...item.pos);
+                scene.add(skirting);
+            });
+        }
+        
+        // Добавление мебели по умолчанию
+        function createInitialFurniture() {
+            const r = apartmentLayout.rooms;
+            
+            // Гостиная
+            addFurniture('sofa', r.livingRoom.x, 0.5, r.livingRoom.z - 1, 0);
+            addFurniture('table', r.livingRoom.x, 0.4, r.livingRoom.z + 1, 0);
+            addFurniture('tv', r.livingRoom.x - 2, 0.5, r.livingRoom.z - 2, 0);
+            
+            // Спальня
+            addFurniture('bed', r.bedroom.x, 0.4, r.bedroom.z - 1, 0);
+            addFurniture('cabinet', r.bedroom.x + 1.5, 1.5, r.bedroom.z - 2, 0);
+            
+            // Кухня
+            addFurniture('chair', r.kitchen.x - 1, 0.4, r.kitchen.z, 0);
+            addFurniture('chair', r.kitchen.x + 1, 0.4, r.kitchen.z, 0);
+        }
+        
+        // Добавление мебели
+        function addFurniture(type, x, y, z, rotationY) {
+            let geometry, material, mesh;
+            const scale = 0.8;
+            
+            switch(type) {
+                case 'sofa':
+                    geometry = new THREE.BoxGeometry(2.5 * scale, 0.8 * scale, 1 * scale);
+                    material = new THREE.MeshStandardMaterial({ 
+                        color: 0x964B00,
+                        roughness: 0.7
+                    });
+                    mesh = new THREE.Mesh(geometry, material);
+                    break;
+                case 'table':
+                    geometry = new THREE.CylinderGeometry(0.7 * scale, 0.7 * scale, 0.05 * scale, 16);
+                    const legs = new THREE.BoxGeometry(0.07 * scale, 0.7 * scale, 0.07 * scale);
+                    
+                    const tableGroup = new THREE.Group();
+                    
+                    const tableTop = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ 
+                        color: 0x8B4513,
+                        roughness: 0.6
+                    }));
+                    tableTop.position.y = 0.35 * scale;
+                    tableGroup.add(tableTop);
+                    
+                    for(let i = 0; i < 4; i++) {
+                        const leg = new THREE.Mesh(legs, new THREE.MeshStandardMaterial({ 
+                            color: 0x8B4513,
+                            roughness: 0.6
+                        }));
+                        leg.position.x = (i % 2 === 0 ? -0.6 : 0.6) * scale;
+                        leg.position.z = (i < 2 ? -0.6 : 0.6) * scale;
+                        leg.position.y = 0;
+                        tableGroup.add(leg);
+                    }
+                    
+                    mesh = tableGroup;
+                    break;
+                case 'bed':
+                    geometry = new THREE.BoxGeometry(2 * scale, 0.4 * scale, 1.5 * scale);
+                    material = new THREE.MeshStandardMaterial({ 
+                        color: 0x87CEEB,
+                        roughness: 0.8
+                    });
+                    mesh = new THREE.Mesh(geometry, material);
+                    break;
+                case 'cabinet':
+                    geometry = new THREE.BoxGeometry(1 * scale, 1.8 * scale, 0.5 * scale);
+                    material = new THREE.MeshStandardMaterial({ 
+                        color: 0xD2B48C,
+                        roughness: 0.5
+                    });
+                    mesh = new THREE.Mesh(geometry, material);
+                    break;
+                case 'chair':
+                    geometry = new THREE.BoxGeometry(0.6 * scale, 0.8 * scale, 0.6 * scale);
+                    material = new THREE.MeshStandardMaterial({ 
+                        color: 0x800000,
+                        roughness: 0.7
+                    });
+                    mesh = new THREE.Mesh(geometry, material);
+                    break;
+                case 'tv':
+                    geometry = new THREE.BoxGeometry(0.1 * scale, 0.8 * scale, 1.2 * scale);
+                    material = new THREE.MeshStandardMaterial({ 
+                        color: 0x333333,
+                        roughness: 0.9
+                    });
+                    
+                    const screenGeometry = new THREE.BoxGeometry(0.1 * scale, 0.7 * scale, 1 * scale);
+                    const screenMaterial = new THREE.MeshStandardMaterial({ 
+                        color: 0x001122,
+                        emissive: 0x001144,
+                        emissiveIntensity: 0.5
+                    });
+                    
+                    const tvGroup = new THREE.Group();
+                    const tvBody = new THREE.Mesh(geometry, material);
+                    const tvScreen = new THREE.Mesh(screenGeometry, screenMaterial);
+                    tvScreen.position.z = 0.01;
+                    tvGroup.add(tvBody);
+                    tvGroup.add(tvScreen);
+                    
+                    mesh = tvGroup;
+                    break;
+            }
+            
+            mesh.position.set(x, y, z);
+            mesh.rotation.y = rotationY;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData = { type: type };
+            
+            scene.add(mesh);
+            furniture.push({
+                mesh: mesh,
+                type: type,
+                position: new THREE.Vector3(x, y, z),
+                rotation: rotationY
+            });
+            
+            // Добавляем мебель в объекты коллизий
+            collisionObjects.push(mesh);
+            
+            return mesh;
+        }
+        
+        // Инициализация выбора мебели
+        function initFurnitureSelector() {
+            const items = document.querySelectorAll('.furniture-item');
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    items.forEach(i => i.classList.remove('selected'));
+                    item.classList.add('selected');
+                    selectedFurnitureType = item.dataset.type;
+                    
+                    // Если есть выбранная мебель, снимаем выделение
+                    if (selectedFurniture) {
+                        selectedFurniture = null;
+                    }
+                });
+            });
+            
+            // Кнопки управления
+            document.getElementById('reset-btn').addEventListener('click', resetFurniture);
+            document.getElementById('mode-btn').addEventListener('click', toggleMode);
+            document.getElementById('save-btn').addEventListener('click', saveDesign);
+            
+            // Обработчик клика по холсту
+            renderer.domElement.addEventListener('click', onCanvasClick, false);
+        }
+        
+        // Обработка клика по холсту
+        function onCanvasClick(event) {
+            if (mode !== 'design') return;
+            
+            // Вычисление позиции мыши
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+            
+            // Обновление Raycaster
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Проверка пересечения с полом
+            const intersects = raycaster.intersectObjects(scene.children);
+            
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                
+                // Проверяем, не кликнули ли мы на уже существующую мебель
+                const furnitureIntersect = intersects.find(i => furniture.some(f => f.mesh === i.object));
+                
+                if (furnitureIntersect) {
+                    // Выбираем существующую мебель
+                    selectedFurniture = furnitureIntersect.object;
+                } else {
+                    // Добавляем новую мебель
+                    const newFurniture = addFurniture(selectedFurnitureType, point.x, 0, point.z, 0);
+                    selectedFurniture = newFurniture;
+                }
+            }
+        }
+        
+        // Переключение режима
+        function toggleMode() {
+            if (mode === 'design') {
+                // Переключаемся в режим навигации
+                mode = 'navigation';
+                document.getElementById('mode-btn').textContent = 'Вернуться в режим дизайна';
+                document.getElementById('mode-btn').className = 'mode-btn';
+                document.getElementById('design-panel').style.display = 'none';
+                document.getElementById('nav-panel').style.display = 'block';
+                
+                // Отключаем OrbitControls
+                orbitControls.enabled = false;
+                
+                // Включаем PointerLockControls
+                pointerControls.lock();
+                
+                // Устанавливаем камеру на уровень игрока
+                camera.position.y = playerHeight;
+                camera.position.x = 0;
+                camera.position.z = 0;
+            } else {
+                // Переключаемся в режим дизайна
+                mode = 'design';
+                document.getElementById('mode-btn').textContent = 'Перейти в режим навигации';
+                document.getElementById('mode-btn').className = 'nav-btn';
+                document.getElementById('design-panel').style.display = 'block';
+                document.getElementById('nav-panel').style.display = 'none';
+                
+                // Отключаем PointerLockControls
+                pointerControls.unlock();
+                
+                // Включаем OrbitControls
+                orbitControls.enabled = true;
+                
+                // Устанавливаем камеру сверху
+                camera.position.set(0, 5, 10);
+                camera.lookAt(0, 0, 0);
+            }
+        }
+        
+        // Сброс мебели
+        function resetFurniture() {
+            furniture.forEach(item => {
+                scene.remove(item.mesh);
+                // Удаляем мебель из объектов коллизий
+                const index = collisionObjects.indexOf(item.mesh);
+                if (index !== -1) {
+                    collisionObjects.splice(index, 1);
+                }
+            });
+            furniture = [];
+            createInitialFurniture();
+        }
+        
+        // Сохранение дизайна
+        function saveDesign() {
+            alert('Дизайн сохранен! В реальном приложении здесь бы сохранялись позиции мебели.');
+        }
+        
+        // Определение текущей комнаты
+        function getCurrentRoom() {
+            const pos = camera.position;
+            const r = apartmentLayout.rooms;
+            
+            if (pos.x > r.hallway.x - r.hallway.width/2 && 
+                pos.x < r.hallway.x + r.hallway.width/2 &&
+                pos.z > r.hallway.z - r.hallway.depth/2 &&
+                pos.z < r.hallway.z + r.hallway.depth/2) {
+                return "Прихожая";
+            }
+            
+            if (pos.x > r.livingRoom.x - r.livingRoom.width/2 && 
+                pos.x < r.livingRoom.x + r.livingRoom.width/2 &&
+                pos.z > r.livingRoom.z - r.livingRoom.depth/2 &&
+                pos.z < r.livingRoom.z + r.livingRoom.depth/2) {
+                return "Гостиная";
+            }
+            
+            if (pos.x > r.bedroom.x - r.bedroom.width/2 && 
+                pos.x < r.bedroom.x + r.bedroom.width/2 &&
+                pos.z > r.bedroom.z - r.bedroom.depth/2 &&
+                pos.z < r.bedroom.z + r.bedroom.depth/2) {
+                return "Спальня";
+            }
+            
+            if (pos.x > r.kitchen.x - r.kitchen.width/2 && 
+                pos.x < r.kitchen.x + r.kitchen.width/2 &&
+                pos.z > r.kitchen.z - r.kitchen.depth/2 &&
+                pos.z < r.kitchen.z + r.kitchen.depth/2) {
+                return "Кухня";
+            }
+            
+            if (pos.x > r.bathroom.x - r.bathroom.width/2 && 
+                pos.x < r.bathroom.x + r.bathroom.width/2 &&
+                pos.z > r.bathroom.z - r.bathroom.depth/2 &&
+                pos.z < r.bathroom.z + r.bathroom.depth/2) {
+                return "Санузел";
+            }
+            
+            if (pos.x > r.balcony.x - r.balcony.width/2 && 
+                pos.x < r.balcony.x + r.balcony.width/2 &&
+                pos.z > r.balcony.z - r.balcony.depth/2 &&
+                pos.z < r.balcony.z + r.balcony.depth/2) {
+                return "Балкон";
+            }
+            
+            return "Коридор";
+        }
+        
+        // Обработчики событий клавиатуры
+        function onKeyDown(event) {
+            if (mode === 'design') {
+                // Обработка клавиш в режиме дизайна
+                if (event.key === 'r' || event.key === 'R') {
+                    if (selectedFurniture) {
+                        selectedFurniture.rotation.y += Math.PI / 4;
+                        // Обновление данных в массиве мебели
+                        const furnitureItem = furniture.find(item => item.mesh === selectedFurniture);
+                        if (furnitureItem) {
+                            furnitureItem.rotation = selectedFurniture.rotation.y;
+                        }
+                    }
+                }
+                
+                if (event.key === 'Delete') {
+                    if (selectedFurniture) {
+                        scene.remove(selectedFurniture);
+                        // Удаляем мебель из массива
+                        furniture = furniture.filter(item => item.mesh !== selectedFurniture);
+                        // Удаляем мебель из объектов коллизий
+                        const index = collisionObjects.indexOf(selectedFurniture);
+                        if (index !== -1) {
+                            collisionObjects.splice(index, 1);
+                        }
+                        selectedFurniture = null;
+                    }
+                }
+            } else if (mode === 'navigation') {
+                // Обработка клавиш в режиме навигации
+                switch (event.code) {
+                    case 'ArrowUp':
+                    case 'KeyW':
+                        moveForward = true;
+                        break;
+                    case 'ArrowLeft':
+                    case 'KeyA':
+                        moveLeft = true;
+                        break;
+                    case 'ArrowDown':
+                    case 'KeyS':
+                        moveBackward = true;
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD':
+                        moveRight = true;
+                        break;
+                    case 'Space':
+                        if (canJump) {
+                            velocity.y = 0.15;
+                            canJump = false;
+                        }
+                        break;
+                    case 'ShiftLeft':
+                        isCrouching = true;
+                        camera.position.y = crouchHeight;
+                        break;
+                    case 'KeyR':
+                        resetPosition();
+                        break;
+                }
+            }
+        }
+        
+        function onKeyUp(event) {
+            if (mode === 'navigation') {
+                switch (event.code) {
+                    case 'ArrowUp':
+                      case 'KeyW':
+                        moveForward = true;
+                        break;
+                    case 'ArrowLeft':
+                    case 'KeyA':
+                        moveLeft = true;
+                        break;
+                    case 'ArrowDown':
+                    case 'KeyS':
+                        moveBackward = true;
+                        break;
+                    case 'ArrowRight':
+                    case 'KeyD':
+                        moveRight = false;
+                        break;
+                    case 'ShiftLeft':
+                        isCrouching = false;
+                        camera.position.y = playerHeight;
+                        break;
+                }
+            }
+        }
+        
+        // Проверка коллизий
+        function checkCollisions(newPosition) {
+            const playerBox = new THREE.Box3().setFromCenterAndSize(
+                newPosition, 
+                new THREE.Vector3(playerRadius * 2, 2, playerRadius * 2)
+            );
+            
+            for (const obj of collisionObjects) {
+                const objBox = new THREE.Box3().setFromObject(obj);
+                if (playerBox.intersectsBox(objBox)) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        // Сброс положения
+        function resetPosition() {
+            camera.position.set(0, playerHeight, 0);
+            camera.rotation.set(0, 0, 0);
+            velocity.set(0, 0, 0);
+        }
+        
+        // Обработка изменения размера окна
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Анимация
+       function animate() {
+            requestAnimationFrame(animate);
+            
+            if (mode === 'design') {
+                // Обновление OrbitControls в режиме дизайна
+                orbitControls.update();
+            } else if (mode === 'navigation' && pointerControls.isLocked) {
+                // Обновление позиции в режиме навигации
+                const time = performance.now();
+                const delta = (time - prevTime) / 1000;
+                
+                velocity.x -= velocity.x * 5.0 * delta;
+                velocity.z -= velocity.z * 5.0 * delta;
+                velocity.y -= 9.8 * 1.0 * delta; // гравитация
+                
+                const speed = isCrouching ? 2.0 : 4.0;
+                
+                // Получаем направление камеры
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                direction.y = 0; // Игнорируем вертикальный компонент
+                direction.normalize();
+                
+                // Вычисляем перпендикулярное направление для бокового движения
+                const sideDirection = new THREE.Vector3();
+                sideDirection.crossVectors(camera.up, direction);
+                sideDirection.normalize();
+                
+                // Применяем движение относительно направления камеры
+                if (moveForward) {
+                    velocity.x += direction.x * speed * delta;
+                    velocity.z += direction.z * speed * delta;
+                }
+                if (moveBackward) {
+                    velocity.x -= direction.x * speed * delta;
+                    velocity.z -= direction.z * speed * delta;
+                }
+                if (moveLeft) {
+                    velocity.x -= sideDirection.x * speed * delta;
+                    velocity.z -= sideDirection.z * speed * delta;
+                }
+                if (moveRight) {
+                    velocity.x += sideDirection.x * speed * delta;
+                    velocity.z += sideDirection.z * speed * delta;
+                }
+                
+                const newPosition = camera.position.clone().add(
+                    new THREE.Vector3(
+                        velocity.x * delta,
+                        velocity.y * delta,
+                        velocity.z * delta
+                    )
+                );
+                
+                // Проверка коллизий
+                if (!checkCollisions(newPosition)) {
+                    camera.position.copy(newPosition);
+                } else {
+                    // Если есть коллизия, обнуляем скорость в этом направлении
+                    velocity.x = 0;
+                    velocity.z = 0;
+                }
+                
+                // Проверка нахождения на полу
+                if (camera.position.y < playerHeight) {
+                    velocity.y = 0;
+                    camera.position.y = playerHeight;
+                    canJump = true;
+                }
+                
+                // Обновление информации о позиции
+                document.getElementById('position').textContent = 
+                    `${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)}`;
+                
+                // Обновление информации о текущей комнате
+                const currentRoom = getCurrentRoom();
+                const roomLabel = document.getElementById('room-label');
+                roomLabel.textContent = currentRoom;
+                roomLabel.style.opacity = '1';
+                
+                prevTime = time;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Инициализация при загрузке
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
