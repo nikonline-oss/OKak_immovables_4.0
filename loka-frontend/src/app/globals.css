@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+	--background: #f6efe5;
+	--foreground: #28292D;
+
+	--primary: #f93;
+	--primary-foreground: #fff;
+
+	--accent: #390;
+
+	--secondary: #666;
+
+	--card-background: #fffcf7;
+}
+
+.dark {
+	--background: #333;
+	--foreground: #ffc;
+}
+
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--font-sans: var(--font-geist-sans);
+	--font-mono: var(--font-geist-mono);
+}
+
+/* @media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+} */
+
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: 'Montserrat', Helvetica, sans-serif;
+}
+
+.embla {
+    /* Скрываем все, что выходит за пределы контейнера */
+    overflow: hidden;
+    position: relative; /* Необходимо для позиционирования псевдоэлементов */
+}
+
+.embla::before,
+.embla::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5rem; /* Ширина тени */
+  z-index: 1; /* Размещаем тень над карточками */
+  pointer-events: none; /* Позволяет кликать сквозь тень */
+}
+
+.embla::before {
+  left: 0;
+  background: linear-gradient(to right, var(--background), transparent);
+}
+
+.embla::after {
+  right: 0;
+  background: linear-gradient(to left, var(--background), transparent);
+}
+
+.embla__container {
+    display: flex;
+    /* Сдвигаем контейнер влево на величину отступа, чтобы скрыть отступ у первого элемента */
+    margin-left: -1rem;
+}
+
+.embla__slide {
+    /* Устанавливаем базовую ширину слайда в 25%, чтобы помещалось 4 элемента */
+    flex: 0 0 25%;
+    min-width: 0;
+    /* Добавляем внутренний отступ слева, который будет служить промежутком между слайдами */
+    padding-left: 1rem;
+}

@@ -131,10 +131,10 @@ class BitrixService {
     }
 
     async getApartmentList(filter = {}) {
-        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.product.list`, { 
-            filter: { 
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.product.list`, {
+            filter: {
                 ...filter,
-                SECTION_ID: filter.buildingId 
+                SECTION_ID: filter.buildingId
             },
             select: ['ID', 'NAME', 'PRICE', 'PROPERTY_SQUARE', 'PROPERTY_ROOMS']
         });
@@ -146,6 +146,27 @@ class BitrixService {
 
     async deleteApartment(contactId) {
         return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.product.delete`, { ID: contactId });
+    }
+
+    // Создание сделки
+    async createDeal(dealData) {
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.deal.add`, { fields: dealData });
+    }
+
+    // Получение сделки
+    async getDeal(dealId) {
+        const result = await this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.deal.get`, { id: dealId });
+        return result.result;
+    }
+
+    // Обновление сделки
+    async updateDeal(dealId, updateData) {
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.deal.update`, { id: dealId, fields: updateData });
+    }
+
+    // Удаление сделки
+    async deleteDeal(dealId) {
+        return this.call(`${process.env.BITRIX_API_URL_CONTACT_LIST}/crm.deal.delete`, { id: dealId });
     }
 }
 
