@@ -3,16 +3,50 @@
 import React, { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
-import { Product, ProductCard } from "./ProductCard";
+import { ProductCard } from "./ProductCard";
 
-interface ProductCarouselProps {
-  products: Product[];
+interface Apartment {
+  id: string;
+  title: string;
+  description: string;
+  price: string;
+  address: string;
+  region: string;
+  booking_status: string;
+  Developer: {
+    name: string;
+  };
+  MediaBlocks: {
+    url: string;
+  }[];
 }
 
-export function ProductCarousel({ products }: ProductCarouselProps) {
+export function ProductCarousel() {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay()]);
   const [prevBtnDisabled, setPrevBtnDisabled] = useState(true);
   const [nextBtnDisabled, setNextBtnDisabled] = useState(true);
+  const [apartments, setApartments] = useState<Apartment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchApartments = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/apartments');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        setApartments(data.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApartments();
+  }, []);
 
   const scrollPrev = useCallback(
     () => emblaApi && emblaApi.scrollPrev(),
@@ -32,21 +66,41 @@ export function ProductCarousel({ products }: ProductCarouselProps) {
     onSelect();
     emblaApi.on("select", onSelect);
     emblaApi.on("reInit", onSelect);
-  }, [emblaApi]);
+  }, [emblaApi, apartments]);
+
+  if (loading) {
+    return <div className="text-center py-10">Loading apartments...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-10 text-red-500">Error: {error}</div>;
+  }
+
+  if (apartments.length === 0) {
+    return <div className="text-center py-10">No apartments available</div>;
+  }
 
   return (
     <div className="relative mb-28">
-      <div
-        className="embla"
-        ref={emblaRef}>
+      <div className="embla" ref={emblaRef}>
         <div className="embla__container">
-          {products.map((product) => (
-            <div
-              className="embla__slide"
-              key={product.id}>
-              <ProductCard {...product} />
-            </div>
-          ))}
+          {apartments.map((apartment) => {
+            const product = {
+              id: parseInt(apartment.id.replace(/\D/g, '').slice(0, 9)),
+              title: apartment.title,
+              subtitle: `${apartment.Developer.name}, ${apartment.address}`,
+              price: parseFloat(apartment.price),
+              imageUrls: apartment.MediaBlocks.map(block => block.url),
+              rating: 4.5,
+              booking_status: apartment.booking_status
+            };
+            
+            return (
+              <div className="embla__slide" key={apartment.id}>
+                <ProductCard {...product} />
+              </div>
+            );
+          })}
         </div>
       </div>
       <button

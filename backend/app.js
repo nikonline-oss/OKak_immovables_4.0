@@ -5,7 +5,7 @@ const app = express();
 
 // Middleware
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:8000',
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   allowedHeaders: ['Content-Type', 'Authorization', 'bypass-tunnel-reminder'],
   credentials: true,
 };
